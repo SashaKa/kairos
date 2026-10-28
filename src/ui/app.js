@@ -75,6 +75,13 @@ function setFormatters() {
   timeFmt = new Intl.DateTimeFormat(lang, { timeZone: place().tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 }
 const hm = d => timeFmt.format(new Date(Math.round(d / 60e3) * 60e3));
+/** Calendar date as "1 октября 2003" / "1 October 2003". */
+function longDate({ y, m, d }) {
+  const parts = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .formatToParts(new Date(Date.UTC(y, m - 1, d)));
+  const get = type => parts.find(x => x.type === type)?.value ?? '';
+  return `${get('day')} ${get('month')} ${get('year')}`;
+}
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function countdown(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -158,11 +165,10 @@ function viewNow(now) {
       <div class="muted">${t('ch.' + ch + '.meaning')}</div>
       <div class="countdown" id="cd">${countdown(left)}</div>
       <div class="row"><span>${t('until')} · ${changeLine}</span></div>
-      <p style="margin-top:10px">${t('ch.' + ch + '.hint')}</p>
-      <p><strong>${t('favourable')}:</strong> ${t('ch.' + ch + '.do')}</p>
+      <p style="margin-top:10px"><strong>${t('favourable')}:</strong> ${t('ch.' + ch + '.do')}</p>
       <p class="small ${soon ? 'transition-now' : 'muted'}">${soon ? t('transition') + ': ' : ''}${t('transition.hint')}</p>
       <p class="small muted">${t('norm')}</p>
-      <p class="small muted">${t('ghatika', { n: cur.ghatika })}</p>
+      <p class="small"><button class="about-link" data-go="about" data-anchor="units">${t('ghatika', { n: cur.ghatika })}</button></p>
     </section>`;
   }
 
@@ -177,6 +183,7 @@ function viewNow(now) {
   }
 
   html += `<section class="card"><dl class="kv">
+    <dt>${t('date')}</dt><dd>${longDate(ymdOf(now, p.tz))}</dd>
     ${!day.polar ? `<dt>☾</dt><dd>${t('tithi.day', { t: day.tithi, d: day.dayInHalf, half: t('half.' + day.paksha) })}</dd>` : ''}
     <dt>${t('day.pillar')}</dt><dd>${pillarHtml(cn.day.stem, cn.day.branch)}</dd>
     ${!day.polar ? `<dt>${t('sunrise')}</dt><dd>${hm(day.sunrise)}</dd>` : ''}
@@ -240,7 +247,7 @@ function viewSchedule(now) {
   const btn = (label, ymd) => `<button data-date="${ymdKey(ymd)}" aria-pressed="${ymdKey(ymd) === key}">${label}</button>`;
   let html = `<div class="seg">
     ${btn(t('sch.yesterday'), addDays(today, -1))}${btn(t('sch.today'), today)}${btn(t('sch.tomorrow'), addDays(today, 1))}
-    <input type="date" id="dateInput" value="${key}" aria-label="${t('sch.date')}" style="width:auto">
+    <span class="datepick"><button id="datePick" type="button">${longDate(d)}</button><input type="date" id="dateInput" value="${key}" aria-label="${t('sch.date')}" tabindex="-1"></span>
   </div>`;
   html += `<section class="card"><h2>${t('sch.channels')}</h2>`;
   if (day.polar) html += `<p>${t('polar')}</p>`;
@@ -342,12 +349,20 @@ function applyTheme() {
 }
 
 document.addEventListener('click', async e => {
-  const el = e.target.closest('[data-tab],[data-go],[data-set],[data-date],[data-city],#locate,#saveManual');
+  const el = e.target.closest('[data-tab],[data-go],[data-set],[data-date],[data-city],#locate,#saveManual,#datePick');
   if (!el) return;
+  if (el.id === 'datePick') {
+    const inp = document.getElementById('dateInput');
+    try { inp.showPicker(); } catch { inp.focus(); inp.click(); }
+    return;
+  }
   if (el.dataset.tab || el.dataset.go) {
     const next = el.dataset.tab || el.dataset.go;
     if (next === 'about' && tab !== 'about') prevTab = tab;
-    tab = next; window.scrollTo(0, 0); render(); return; }
+    tab = next; window.scrollTo(0, 0); render();
+    const anchor = el.dataset.anchor && document.getElementById(el.dataset.anchor);
+    if (anchor) anchor.scrollIntoView({ block: 'start' });
+    return; }
   if (el.dataset.date) { schedDate = parseYmd(el.dataset.date); render(); return; }
   if (el.id === 'locate') { locate(); render(); return; }
   if (el.id === 'saveManual') {
