@@ -1,5 +1,5 @@
 // Offline cache: all app files are cached on install; cache-first afterwards.
-const VERSION = 'kairos-v1';
+const VERSION = 'kairos-v2';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest',
   'src/ui/app.js', 'src/ui/styles.css',
