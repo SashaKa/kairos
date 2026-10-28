@@ -317,11 +317,21 @@ function renderTabs() {
   document.getElementById('tabs').innerHTML = TABS.map(([id, ico]) =>
     `<button data-tab="${id}" aria-current="${tab === id || (tab === 'about' && id === 'settings') ? 'page' : 'false'}"><span class="ico">${ico}</span>${t('tab.' + id)}</button>`).join('');
 }
+function renderProfile() {
+  const sex = S.sex === 'male' ? '♂' : '♀';
+  const label = `${t('set.sex')}: ${t('set.sex.' + S.sex)} · ${t('set.language')}: ${lang.toUpperCase()}`;
+  const btn = document.getElementById('profile');
+  btn.innerHTML = `<span class="sex" aria-hidden="true">${sex}</span><span>${lang.toUpperCase()}</span>`;
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+  document.getElementById('brand').textContent = t('app.title');
+}
 function render() {
   const now = new Date();
   const views = { now: viewNow, chinese: viewChinese, schedule: viewSchedule, settings: viewSettings, about: viewAbout };
   view.innerHTML = views[tab](now);
   renderTabs();
+  renderProfile();
 }
 function applyTheme() {
   if (S.theme === 'auto') delete document.documentElement.dataset.theme;
