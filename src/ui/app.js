@@ -144,7 +144,7 @@ function viewNow(now) {
   if (geoStatus === 'failed') html += `<p class="muted small">${t('geo.failed')}</p>`;
 
   if (day.polar) {
-    html += `<div class="card">${aboutLink()}<p>${t('polar')}</p></div>`;
+    html += `<div class="card"><p>${t('polar')}</p></div>`;
   } else {
     const cur = currentSegment(day, now);
     const ch = cur.segment.channel;
@@ -153,7 +153,6 @@ function viewNow(now) {
     const soon = left < 60e3;
     const changeLine = cur.next ? t('change.at', { time: hm(cur.segment.end) }) : t('change.sunrise', { time: hm(day.nextSunrise) });
     html += `<section class="card ${ch}" aria-label="channel">
-      ${aboutLink()}
       <div class="channel-name">${t('ch.' + ch)}</div>
       <div class="side">${t('side.' + side)}</div>
       <div class="muted">${t('ch.' + ch + '.meaning')}</div>
@@ -183,7 +182,7 @@ function viewNow(now) {
     ${!day.polar ? `<dt>${t('sunrise')}</dt><dd>${hm(day.sunrise)}</dd>` : ''}
     ${!day.polar && day.sunset ? `<dt>${t('sunset')}</dt><dd>${hm(day.sunset)}</dd>` : ''}
     <dt>${t('place')}</dt><dd>${esc(p.name)}</dd>
-  </dl></section>`;
+  </dl>${aboutLink()}</section>`;
   return html;
 }
 
@@ -193,7 +192,6 @@ function viewChinese(now) {
   const clockOff = Math.round(cn.offsetMin - tzOffsetAt(now));
   const segs = segmentsBetween(cn.start, cn.end, cn.ymd);
   let html = `<section class="card">
-    ${aboutLink()}
     <div class="row"><strong>${t('cn.hour')}</strong>${h ? ratingBadge(h) : ''}</div>
     ${h ? `<div class="big-pillar">${pillarHtml(h.stem, h.branch, true)}</div>
     <div>${N().animals[h.branchIdx]} · ${spiritText(h)}</div>
@@ -244,7 +242,7 @@ function viewSchedule(now) {
     ${btn(t('sch.yesterday'), addDays(today, -1))}${btn(t('sch.today'), today)}${btn(t('sch.tomorrow'), addDays(today, 1))}
     <input type="date" id="dateInput" value="${key}" aria-label="${t('sch.date')}" style="width:auto">
   </div>`;
-  html += `<section class="card">${aboutLink()}<h2>${t('sch.channels')}</h2>`;
+  html += `<section class="card"><h2>${t('sch.channels')}</h2>`;
   if (day.polar) html += `<p>${t('polar')}</p>`;
   else {
     html += `<p class="small muted">${t('tithi.day', { t: day.tithi, d: day.dayInHalf, half: t('half.' + day.paksha) })} · ${t('sunrise')} ${hm(day.sunrise)}</p><ul class="list">`;
@@ -274,7 +272,6 @@ function viewSettings() {
   let tzs = [];
   try { tzs = Intl.supportedValuesOf('timeZone'); } catch { tzs = [p.tz]; }
   return `<section class="card">
-    ${aboutLink()}
     <label>${t('set.language')}</label>
     <div class="seg">${opt('lang', 'auto', t('set.language.auto'))}${opt('lang', 'ru', 'Русский')}${opt('lang', 'en', 'English')}</div>
     <label>${t('set.sex')}</label>
@@ -303,7 +300,7 @@ function viewSettings() {
     <label>${t('set.theme')}</label>
     <div class="seg">${opt('theme', 'auto', t('set.theme.auto'))}${opt('theme', 'light', t('set.theme.light'))}${opt('theme', 'dark', t('set.theme.dark'))}</div>
   </section>
-  `;
+  <section class="card">${aboutLink()}</section>`;
 }
 
 function viewAbout() {
