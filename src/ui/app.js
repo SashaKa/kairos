@@ -349,6 +349,12 @@ function applyTheme() {
 }
 
 document.addEventListener('click', async e => {
+  const opener = e.target.closest('[data-open]');
+  if (opener) {
+    const det = document.getElementById(opener.dataset.open);
+    if (det) { det.open = true; det.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+    return;
+  }
   const el = e.target.closest('[data-tab],[data-go],[data-set],[data-date],[data-city],#locate,#saveManual,#datePick');
   if (!el) return;
   if (el.id === 'datePick') {
@@ -361,7 +367,7 @@ document.addEventListener('click', async e => {
     if (next === 'about' && tab !== 'about') prevTab = tab;
     tab = next; window.scrollTo(0, 0); render();
     const anchor = el.dataset.anchor && document.getElementById(el.dataset.anchor);
-    if (anchor) anchor.scrollIntoView({ block: 'start' });
+    if (anchor) { const det = anchor.closest('details'); if (det) det.open = true; anchor.scrollIntoView({ block: 'start' }); }
     return; }
   if (el.dataset.date) { schedDate = parseYmd(el.dataset.date); render(); return; }
   if (el.id === 'locate') { locate(); render(); return; }
