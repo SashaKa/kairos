@@ -1,5 +1,5 @@
 // Offline support: network first (fresh files when online), cache as fallback offline.
-const VERSION = 'kairos-v7';
+const VERSION = 'kairos-v8';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest',
   'src/ui/app.js', 'src/ui/styles.css',
