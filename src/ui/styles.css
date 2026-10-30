@@ -4,10 +4,10 @@
   --ink: #1d1f24;
   --muted: #6b6f78;
   --line: #e3e0d8;
-  --solar: #c26a12;
-  --solar-bg: #fbeedd;
-  --lunar: #3f5fa8;
-  --lunar-bg: #e6ecf8;
+  --solar: #FF7F50;      /* coral, rgb(255,127,80) */
+  --lunar: #191970;      /* midnight blue, rgb(25,25,112) */
+  --on-solar: #1d1f24;
+  --on-lunar: #ffffff;
   --good: #2f7d4f;
   --bad: #b03a2e;
   --accent: #6b4fa0;
@@ -17,13 +17,11 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121418; --card: #1c1f26; --ink: #eceef2; --muted: #9aa0ab; --line: #2c303a;
-    --solar: #f0a24a; --solar-bg: #3a2a17; --lunar: #9bb5f0; --lunar-bg: #1d2740;
     --good: #6fcf97; --bad: #f08a7e; --accent: #b9a2e8; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121418; --card: #1c1f26; --ink: #eceef2; --muted: #9aa0ab; --line: #2c303a;
-  --solar: #f0a24a; --solar-bg: #3a2a17; --lunar: #9bb5f0; --lunar-bg: #1d2740;
   --good: #6fcf97; --bad: #f08a7e; --accent: #b9a2e8; color-scheme: dark;
 }
 
@@ -49,13 +47,18 @@ a { color: var(--accent); }
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 16px; margin-bottom: 12px;
 }
-.card.solar { background: var(--solar-bg); border-color: transparent; }
-.card.lunar { background: var(--lunar-bg); border-color: transparent; }
+.card.solar { background: var(--solar); color: var(--on-solar); border-color: transparent; }
+.card.lunar { background: var(--lunar); color: var(--on-lunar); border-color: transparent; }
+.card.solar .muted, .card.lunar .muted { color: inherit; opacity: 0.8; }
+.card.solar .about-link, .card.lunar .about-link,
+.card.solar .transition-now, .card.lunar .transition-now { color: inherit; }
 .card.link { cursor: pointer; }
 
 .channel-name { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; }
-.solar .channel-name, .solar-ink { color: var(--solar); }
-.lunar .channel-name, .lunar-ink { color: var(--lunar); }
+.card.solar .channel-name, .card.lunar .channel-name { color: inherit; }
+.solar-ink, .lunar-ink { display: inline-block; justify-self: start; padding: 1px 10px; border-radius: 999px; font-weight: 600; }
+.solar-ink { background: var(--solar); color: var(--on-solar); }
+.lunar-ink { background: var(--lunar); color: var(--on-lunar); }
 .side { font-size: 20px; font-weight: 600; }
 .countdown { font-size: 56px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; margin: 12px 0 2px; }
 .row { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
@@ -83,6 +86,7 @@ a { color: var(--accent); }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .dot.solar { background: var(--solar); }
 .dot.lunar { background: var(--lunar); }
+.dot { box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 35%, transparent); }
 
 .seg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 button, select, input {
