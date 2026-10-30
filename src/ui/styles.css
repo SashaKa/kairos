@@ -164,3 +164,24 @@ main { padding-top: 12px; }
 .about details[open] summary { margin-bottom: 8px; }
 .about details { scroll-margin-top: 16px; }
 .inline-link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+.topbar { position: relative; z-index: 20; }
+.profile-wrap { position: relative; }
+.profile svg { opacity: 0.7; }
+.profile-menu {
+  display: none; position: absolute; right: 0; top: calc(100% + 6px); width: 260px; z-index: 30;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.profile-wrap::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; }
+@media (hover: hover) { .profile-wrap:hover .profile-menu { display: block; } }
+.profile-wrap.open .profile-menu { display: block; }
+.menu-label { font-size: 13px; color: var(--muted); margin: 8px 0 4px; }
+.menu-label:first-child { margin-top: 0; }
+.profile-menu .seg { margin-bottom: 4px; }
+.profile-menu .seg button { padding: 4px 12px; font-size: 14px; }
+.menu-place { font-size: 14px; }
+.menu-all { width: 100%; margin-top: 12px; }
+.forecast h3 { margin: 14px 0 6px; font-size: 15px; color: var(--muted); }
+.forecast .kv { grid-template-columns: 110px 1fr; }
+.forecast .kv dd { margin-bottom: 6px; }

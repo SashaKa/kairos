@@ -1,6 +1,7 @@
 import { swaraDay, swaraDayAt, currentSegment, sideOf } from '../calc/swara.js';
 import { chineseDay, chineseDayAt } from '../calc/chinese.js';
 import { ymdOf, addDays, ymdKey, parseYmd } from '../calc/tz.js';
+import { dayForecast, tithiGroup, tibetAlmanacUrl } from '../calc/almanac.js';
 
 // ---------- settings ----------
 const KEY = 'kairos.settings.v1';
@@ -33,6 +34,7 @@ async function loadLang() {
   document.documentElement.lang = lang;
   document.title = dict['app.title'];
 }
+const tt = k => dict[k];
 const t = (k, vars = {}) => (dict[k] ?? k).replace(/\{(\w+)\}/g, (_, v) => vars[v] ?? '');
 
 const NAMES = {
@@ -139,7 +141,6 @@ function segmentsBetween(start, end, aroundYmd) {
 // ---------- views ----------
 const aboutLink = () => `<div class="about-row"><button class="about-link" data-go="about">ⓘ ${t('set.about')}</button></div>`;
 let tab = 'now';
-let prevTab = 'now';
 let schedDate = null; // {y,m,d}
 const view = document.getElementById('view');
 
@@ -168,17 +169,20 @@ function viewNow(now) {
       <p style="margin-top:10px"><strong>${t('favourable')}:</strong> ${t('ch.' + ch + '.do')}</p>
       <p class="small ${soon ? 'transition-now' : 'muted'}">${soon ? t('transition') + ': ' : ''}${t('transition.hint')}</p>
       <p class="small muted">${t('norm')}</p>
-      <p class="small"><button class="about-link" data-go="about" data-anchor="units">${t('ghatika', { n: cur.ghatika })}</button></p>
+      <p class="small"><button class="about-link" data-go="about" data-anchor="astro-hour">${t('ghatika', { n: cur.ghatika })}</button></p>
     </section>`;
   }
 
   const h = cn.current;
   if (h) {
-    html += `<section class="card link" data-go="chinese">
-      <div class="row"><strong>${t('cn.hour')}</strong>${ratingBadge(h)}</div>
-      <div style="font-size:26px;font-weight:700;margin-top:4px">${pillarHtml(h.stem, h.branch)}</div>
-      <div>${spiritText(h)} · ${t('cn.until', { time: hm(h.end) })}</div>
-      ${h.clash ? `<div class="bad small">${t('cn.clash')}</div>` : ''}
+    const clockOff = Math.round(cn.offsetMin - tzOffsetAt(now));
+    html += `<section class="card link" data-go="today">
+      <div class="row"><strong>${t('cn.now')}</strong>${ratingBadge(h)}</div>
+      <div class="big-pillar">${pillarHtml(h.stem, h.branch, true)}</div>
+      <div>${N().animals[h.branchIdx]} · ${spiritText(h)}</div>
+      <div>${hm(h.start)}–${hm(h.end)} · ${t('cn.until', { time: hm(h.end) })}</div>
+      ${h.clash ? `<div class="bad">${t('cn.clash')}</div>` : ''}
+      <p class="small muted" style="margin-top:8px">${t('cn.offset', { sign: clockOff >= 0 ? '+' : '−', min: Math.abs(clockOff) })}. ${t('cn.boundary.' + cn.boundary)}.</p>
     </section>`;
   }
 
@@ -190,28 +194,6 @@ function viewNow(now) {
     ${!day.polar && day.sunset ? `<dt>${t('sunset')}</dt><dd>${hm(day.sunset)}</dd>` : ''}
     <dt>${t('place')}</dt><dd>${esc(p.name)}</dd>
   </dl>${aboutLink()}</section>`;
-  return html;
-}
-
-function viewChinese(now) {
-  const { cn } = calcNow(now);
-  const h = cn.current;
-  const clockOff = Math.round(cn.offsetMin - tzOffsetAt(now));
-  const segs = segmentsBetween(cn.start, cn.end, cn.ymd);
-  let html = `<section class="card">
-    <div class="row"><strong>${t('cn.hour')}</strong>${h ? ratingBadge(h) : ''}</div>
-    ${h ? `<div class="big-pillar">${pillarHtml(h.stem, h.branch, true)}</div>
-    <div>${N().animals[h.branchIdx]} · ${spiritText(h)}</div>
-    <div>${hm(h.start)}–${hm(h.end)} · ${t('cn.until', { time: hm(h.end) })}</div>
-    ${h.clash ? `<div class="bad">${t('cn.clash')}</div>` : ''}` : ''}
-  </section>
-  <section class="card"><dl class="kv">
-    <dt>${t('day.pillar')}</dt><dd>${pillarHtml(cn.day.stem, cn.day.branch)}</dd>
-  </dl>
-  <p class="small muted" style="margin-top:8px">${t('cn.offset', { sign: clockOff >= 0 ? '+' : '−', min: Math.abs(clockOff) })}. ${t('cn.boundary.' + cn.boundary)}.</p>
-  </section>
-  <section class="card"><ul class="list">${hourRows(cn, segs, now)}</ul>
-  <p class="small muted" style="margin-top:8px">${t('cn.compare')} <span class="dot solar"></span> ${t('ch.solar')} <span class="dot lunar"></span> ${t('ch.lunar')}</p></section>`;
   return html;
 }
 
@@ -237,7 +219,35 @@ function hourRows(cn, segs, now) {
   }).join('');
 }
 
-function viewSchedule(now) {
+function forecastCard(d, day) {
+  const f = dayForecast(d, place().tz);
+  const pz = `<span class="hz">${f.pengzuStem}</span> — ${tt('pz.stem')[STEMS.indexOf(f.pengzuStem)]}; <span class="hz">${f.pengzuBranch}</span> — ${tt('pz.branch')[BRANCHES.indexOf(f.pengzuBranch)]}`;
+  const off = f.officerIdx;
+  const tib = !day.polar
+    ? `<dt>${t('fc.lunar')}</dt><dd>${day.tithi} · ${tt('tithi.groups')[tithiGroup(day.tithi)]}</dd>` : '';
+  return `<section class="card forecast">
+    <h2>${t('fc.title')}</h2>
+    <h3>${t('fc.chinese')}</h3>
+    <dl class="kv">
+      <dt>${t('day.pillar')}</dt><dd>${pillarHtml(f.day.stem, f.day.branch)} · ${N().animals[BRANCHES.indexOf(f.day.branch)]}</dd>
+      <dt>${t('fc.officer')}</dt><dd>${S.hanzi ? `<span class="hz">${f.officer}</span> ` : ''}${tt('off.names')[off]}<br>
+        <span class="good">${t('fc.good')}:</span> ${tt('off.good')[off]}<br>
+        <span class="bad">${t('fc.bad')}:</span> ${tt('off.bad')[off]}</dd>
+      <dt>${t('fc.star')}</dt><dd>${spiritText(f)} — <span class="${f.spiritGood ? 'good' : 'bad'}">${t(f.spiritGood ? 'fc.star.good' : 'fc.star.bad')}</span></dd>
+      <dt>${t('fc.pengzu')}</dt><dd>${pz}</dd>
+      <dt>${t('fc.clash')}</dt><dd>${t('fc.clash.text', { animal: tt('animals.with')[f.clashIdx], branch: f.clashBranch, dir: t('dir.' + f.shaDirection) })}</dd>
+    </dl>
+    <h3>${t('fc.tibetan')}</h3>
+    <dl class="kv">
+      ${tib}
+      <dt>${t('fc.weekday')}</dt><dd>${tt('weekdays')[f.weekday]}</dd>
+    </dl>
+    <p class="small" style="margin-top:8px"><a href="${tibetAlmanacUrl(d, lang)}" target="_blank" rel="noopener">${t('fc.almanac')} ↗</a></p>
+    <p class="small muted">${t('fc.note')}</p>
+  </section>`;
+}
+
+function viewToday(now) {
   const p = place();
   const today = ymdOf(now, p.tz);
   const d = schedDate || today;
@@ -249,6 +259,7 @@ function viewSchedule(now) {
     ${btn(t('sch.yesterday'), addDays(today, -1))}${btn(t('sch.today'), today)}${btn(t('sch.tomorrow'), addDays(today, 1))}
     <span class="datepick"><button id="datePick" type="button">${longDate(d)}</button><input type="date" id="dateInput" value="${key}" aria-label="${t('sch.date')}" tabindex="-1"></span>
   </div>`;
+  html += forecastCard(d, day);
   html += `<section class="card"><h2>${t('sch.channels')}</h2>`;
   if (day.polar) html += `<p>${t('polar')}</p>`;
   else {
@@ -263,7 +274,8 @@ function viewSchedule(now) {
   }
   html += `</section><section class="card"><h2>${t('sch.chinese')}</h2>
     <p class="small muted">${t('day.pillar')}: ${pillarHtml(cn.day.stem, cn.day.branch)}</p>
-    <ul class="list">${hourRows(cn, segmentsBetween(cn.start, cn.end, d), now)}</ul></section>`;
+    <ul class="list">${hourRows(cn, segmentsBetween(cn.start, cn.end, d), now)}</ul>
+    <p class="small muted" style="margin-top:8px">${t('cn.compare')} <span class="dot solar"></span> ${t('ch.solar')} <span class="dot lunar"></span> ${t('ch.lunar')}</p></section>`;
   return html;
 }
 
@@ -311,34 +323,40 @@ function viewSettings() {
 }
 
 function viewAbout() {
-  return `<button class="chip" data-go="${prevTab}">← ${t('about.back')}</button>
-  <section class="card about" style="margin-top:12px"><div class="table-wrap">${t('about.html')}</div></section>`;
+  return `<section class="card about"><div class="table-wrap">${t('about.html')}</div></section>`;
 }
 
 // ---------- render & events ----------
 const ICON = {
   now: '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 2a8 8 0 0 0 0 16z" fill="currentColor"/></svg>',
-  chinese: '<span class="hz" style="font-size:18px">時</span>',
-  schedule: '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  settings: '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3M4 4l2.1 2.1M13.9 13.9L16 16M4 16l2.1-2.1M13.9 6.1L16 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  today: '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="13.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 8.5h15M6.5 2v4M13.5 2v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  about: '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>',
 };
 const TABS = Object.entries(ICON);
 function renderTabs() {
   document.getElementById('tabs').innerHTML = TABS.map(([id, ico]) =>
-    `<button data-tab="${id}" aria-current="${tab === id || (tab === 'about' && id === prevTab) ? 'page' : 'false'}"><span class="ico">${ico}</span>${t('tab.' + id)}</button>`).join('');
+    `<button data-tab="${id}" aria-current="${tab === id ? 'page' : 'false'}"><span class="ico">${ico}</span>${t('tab.' + id)}</button>`).join('');
 }
 function renderProfile() {
   const sex = S.sex === 'male' ? '♂' : '♀';
-  const label = `${t('set.sex')}: ${t('set.sex.' + S.sex)} · ${t('set.language')}: ${lang.toUpperCase()}`;
+  const label = `${t('tab.settings')}: ${t('set.sex.' + S.sex)} · ${lang.toUpperCase()} · ${place().name}`;
   const btn = document.getElementById('profile');
-  btn.innerHTML = `<span class="sex" aria-hidden="true">${sex}</span><span>${lang.toUpperCase()}</span>`;
+  btn.innerHTML = `<span class="sex" aria-hidden="true">${sex}</span><span>${lang.toUpperCase()}</span><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3M4 4l2.1 2.1M13.9 13.9L16 16M4 16l2.1-2.1M13.9 6.1L16 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
   btn.setAttribute('aria-label', label);
-  btn.title = label;
+  const opt = (name, value, text) => `<button data-set="${name}" data-value="${value}" aria-pressed="${String(S[name]) === String(value)}">${text}</button>`;
+  document.getElementById('profileMenu').innerHTML = `
+    <div class="menu-label">${t('set.sex')}</div>
+    <div class="seg">${opt('sex', 'female', '♀ ' + t('set.sex.female'))}${opt('sex', 'male', '♂ ' + t('set.sex.male'))}</div>
+    <div class="menu-label">${t('set.language')}</div>
+    <div class="seg">${opt('lang', 'ru', 'RU')}${opt('lang', 'en', 'EN')}${opt('lang', 'auto', t('set.language.auto'))}</div>
+    <div class="menu-label">${t('menu.place')}</div>
+    <div class="menu-place">${esc(place().name)} · <button class="inline-link" data-go="settings">${t('menu.change')}</button></div>
+    <button class="primary menu-all" data-go="settings">${t('menu.settings')}</button>`;
   document.getElementById('brand').textContent = t('app.title');
 }
 function render() {
   const now = new Date();
-  const views = { now: viewNow, chinese: viewChinese, schedule: viewSchedule, settings: viewSettings, about: viewAbout };
+  const views = { now: viewNow, today: viewToday, settings: viewSettings, about: viewAbout };
   view.innerHTML = views[tab](now);
   renderTabs();
   renderProfile();
@@ -355,8 +373,12 @@ document.addEventListener('click', async e => {
     if (det) { det.open = true; det.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
     return;
   }
+  const wrap = document.getElementById('profileWrap');
+  if (e.target.closest('#profile')) { wrap.classList.toggle('open'); return; }
+  if (!e.target.closest('#profileMenu')) wrap.classList.remove('open');
   const el = e.target.closest('[data-tab],[data-go],[data-set],[data-date],[data-city],#locate,#saveManual,#datePick');
   if (!el) return;
+  if (el.dataset.tab || el.dataset.go) wrap.classList.remove('open');
   if (el.id === 'datePick') {
     const inp = document.getElementById('dateInput');
     try { inp.showPicker(); } catch { inp.focus(); inp.click(); }
@@ -364,7 +386,6 @@ document.addEventListener('click', async e => {
   }
   if (el.dataset.tab || el.dataset.go) {
     const next = el.dataset.tab || el.dataset.go;
-    if (next === 'about' && tab !== 'about') prevTab = tab;
     tab = next; window.scrollTo(0, 0); render();
     const anchor = el.dataset.anchor && document.getElementById(el.dataset.anchor);
     if (anchor) { const det = anchor.closest('details'); if (det) det.open = true; anchor.scrollIntoView({ block: 'start' }); }
